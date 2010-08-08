@@ -39,10 +39,13 @@ function drush_drake() {
 
   $filedir = variable_get("drush_drake_scripts_dir", "scripts/drush_drake");
 
+  $executed_scripts = _drush_drake_get_executed_scripts();
+  
   if ($drake_num == 'all') {
     $files = scandir($filedir);
     foreach ($files as $file) {
-      if(!is_dir($file) && $file != "." && $file != "..") {
+      if(!is_dir($file) && $file != "." && $file != ".."
+      && !in_array(_drush_drake_path_to_drake_version($file), $executed_scripts)) {
         $path = sprintf("%s/%s", $filedir, $file);
         _drush_drake_execute_script($path);
       }
@@ -97,8 +100,6 @@ function _drush_drake_execute_script($path) {
       $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
     }
 
-
-
     drush_set_arguments($args);
 
     $command = drush_parse_command();
@@ -107,5 +108,41 @@ function _drush_drake_execute_script($path) {
       drush_dispatch($command);
     }
   }
+  _drush_drake_mark_script_executed($path);
   print "Completed execution of ".$path . "\n";
+}
+
+/*
+ * Helper function to put entry into db so script is only executed once.
+ */
+function _drush_drake_mark_script_executed($path) {
+  $drake_version = _drush_drake_path_to_drake_version($path);
+  if ($drake_version){
+    db_query("INSERT INTO {drush_drake} (drake_id) VALUES (%d)", $drake_version);
+  }
+}
+
+/*
+ * Helper function to parse filename to drake version.
+ */
+function _drush_drake_path_to_drake_version($filepath) {
+  $drake_version = NULL;
+  $matches = array();
+  preg_match("/\d+\.drake/", $filepath, $matches);
+  if (count($matches)){
+    $drake_version = str_replace(".drake", "", $matches[0]);
+  }
+  return $drake_version;
+}
+
+/*
+ * Lookup executed scripts
+ */
+function _drush_drake_get_executed_scripts() {
+  $executed_scripts = array();
+  $query = db_query("SELECT drake_id FROM {drush_drake}");
+  while ($result = db_fetch_object($query)){
+    $executed_scripts[] = $result->drake_id;
+  }
+  return $executed_scripts;
 }
