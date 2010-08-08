@@ -1,0 +1,5 @@
+name = Drush Drake
+description = Command Line Drush commands for
+package = Drush
+core = 6.x
+

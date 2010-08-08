@@ -1,0 +1,40 @@
+<?php
+/* 
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+function drush_migrate_form_alter(&$form, &$form_state, $form_id) {
+  if (in_array('system_settings_form_submit', $form['#submit'])) {
+    $form['buttons']['drake_export'] = array('#type' => 'submit', '#value' => t('Save and export to drake file') );
+    $form['#submit'][] = "_drush_migrate_export_system_settings_form";
+  }
+}
+
+
+function _drush_migrate_export_system_settings_form($form, &$form_state) {
+  $export_file = $form_state['clicked_button']['#value'] == "Save and export to drake file";
+  if ($export_file) {
+    // Exclude unnecessary elements.
+    unset($form_state['values']['submit'], $form_state['values']['reset'], $form_state['values']['drake_export'], $form_state['values']['form_id'], $form_state['values']['op'], $form_state['values']['form_token'], $form_state['values']['form_build_id']);
+    
+    $vars = $form_state['values'] ;
+
+    foreach ($form_state['values'] as $key => $value) {
+      $vars[$key] = sprintf("vset %s %s", $key, serialize($value));
+    }
+
+    $script_to_write = implode("\n", $vars);
+    module_load_include('inc', 'drush_migrate', 'drake.drush');
+    $filename = drush_migrate_file(false);
+
+    $fh = fopen($filename, "w");
+    fwrite($fh, $script_to_write);
+    fclose($fh);
+    drupal_set_message(t('Exported form settings to @filepath', array('@filepath' => $filename)));
+
+  }
+}
+
+
+?>
