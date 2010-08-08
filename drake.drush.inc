@@ -51,7 +51,7 @@ function drush_drake() {
       }
     }
   }
-  else {
+  else if (!in_array(drake_num, $executed_scripts)){
     if (!strpos($drake_num, ".drake")) {
       $drake_num = $drake_num.".drake";
     }
