@@ -1,5 +1,5 @@
-name = Drush Drake
-description = Command Line Drush commands for
+name = Drush Migrate
+description = Tools for handling drupal migrations using Drush
 package = Drush
 core = 6.x
 

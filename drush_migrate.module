@@ -1,9 +1,8 @@
 <?php
-/* 
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/*
+ * Alter any of the system_settings_form instances to allow for
+ * export to a drake script. 
  */
-
 function drush_migrate_form_alter(&$form, &$form_state, $form_id) {
   if (in_array('system_settings_form_submit', $form['#submit'])) {
     $form['buttons']['drake_export'] = array('#type' => 'submit', '#value' => t('Save and export to drake file') );
@@ -11,7 +10,12 @@ function drush_migrate_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-
+/*
+ * Submit handler for system_settings_form drake script exprot.
+ * Write each form value to a drake script line:
+ * vset var_name var_value.
+ * 
+ */
 function _drush_migrate_export_system_settings_form($form, &$form_state) {
   $export_file = $form_state['clicked_button']['#value'] == "Save and export to drake file";
   if ($export_file) {

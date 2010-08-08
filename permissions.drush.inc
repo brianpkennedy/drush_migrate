@@ -1,19 +1,7 @@
 <?php
-// $Id: variable.drush.inc,v 1.19 2010/03/25 02:48:17 weitzman Exp $
-
-
 /**
  * Implementation of hook_drush_command().
- *
- * In this hook, you specify which commands your
- * drush module makes available, what it does and
- * description.
- *
- * Notice how this structure closely resembles how
- * you define menu hooks.
- *
- * @return
- *   An associative array describing your command(s).
+ * Define commands for adding, exporting, and draking role permissions
  */
 function permissions_drush_command() {
   $items['permissions-dump-drake'] = array(
@@ -54,11 +42,15 @@ function permissions_drush_command() {
       'permissions-add access_content 1' => 'Give anonymous users the ability to access content',
     ),
   );
+
+  /*
+   * TODO: add role import/export
+   */
   return $items;
 }
 
 /**
- * Command callback.
+ * Command callback for dumping permissions to the command line
  */
 function drush_permissions_dump(){
   $args = func_get_args();
@@ -68,6 +60,11 @@ function drush_permissions_dump(){
   print var_dump($role_permissions);
 }
 
+/**
+ * Command callback for dumping permissions to a drake file.
+ * Each line will be look something like:
+ * permissions-set "access content, foo, bar, baz" 2
+ */
 function drush_permissions_dump_drake(){
   $args = func_get_args();
   $role = $args[0];
@@ -76,7 +73,7 @@ function drush_permissions_dump_drake(){
   foreach($role_permissions as $rid => $perm) {
     $commands[] = sprintf('permissions-set "%s" %s', $perm, $rid);
   }
-  print var_dump($commands);
+
   $script_to_write = implode("\n", $commands);
   
   $filename = drush_drake_file(false);
@@ -87,8 +84,10 @@ function drush_permissions_dump_drake(){
   print sprintf("Created permissions script %s\n", $filename);
 }
 
-/*
- * drush permissions-append access_content 1
+/**
+ * Command callback for dumping permissions to add a set of permissions to a role.
+ * Expecting a command like:
+ * drush permissions-add "access content" 1
  */
 function drush_permissions_add() {
   $args = func_get_args();
@@ -122,14 +121,17 @@ function drush_permissions_add() {
 }
 
 /*
+ * TODO: Implement or remove this function
  * drush permissions-remove access_content 1
  */
 function drush_permissions_remove() {
   $args = func_get_args();
 }
 
-/*
- * drush permissions-clear 1
+/**
+ * Command callback for dumping permissions to add a set of permissions to a role.
+ * Expecting a command like:
+ * drush permissions-set "access content" 1
  */
 function drush_permissions_set() {
   $args = func_get_args();
@@ -144,6 +146,10 @@ function drush_permissions_set() {
   print sprintf("Set rid %s permissions to '%s'", $role, $permissions);
 }
 
+/*
+ * Very very similar to the permissions page submit handler.
+ * Fetch a set of permissions from a role id.
+ */
 function _drush_permissions_fetch_role_permissions($role){
   if ($role){
     if (is_numeric($role)) {
