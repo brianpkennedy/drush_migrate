@@ -1,0 +1,35 @@
+<?
+/**
+ * Implementation of hook_install().
+ */
+function drush_migrate_install() {
+  // Create tables.
+  drupal_install_schema('drush_migrate');
+  // Create drush_drake dir var
+  variable_set("drush_drake_scripts_dir", "scripts/drush_drake");
+  // TODO: Create drush_drake dir?
+
+}
+
+function drush_migrate_uninstall(){
+  drupal_uninstall_schema("drush_migrate");
+  
+}
+
+function drush_migrate_schema() {
+  $schema['drush_drake'] = array(
+    'description' => t('Stores an entry for each drake script that has executed'),
+    'fields' => array(
+      'drake_id' => array(
+        'description' => t('The primary identifier for a node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE)
+      ),
+    'primary key' => array('drake_id'),s
+  );
+
+  return $schema;
+}
+
+?>
