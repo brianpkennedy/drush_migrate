@@ -1,0 +1,32 @@
+drush_migrate
+=============
+
+Drush migrate is a drupal module to enable drush based migrations from developers machines to external environments. The goal is to allow developers to write scripts of drush commands to make configuration environments, as well as allowing easy creation of scripts from the Drupal admininistrative screen. The engine for executing these scripts is called drake.
+
+drush drake
+===========
+
+Drush Drake is the engine for executing migration scripts. Each drake script is a collection of drush commands, which are executed via the "drush drake" command. After a drake script is executed, it is logged in the database as executed so that it will not execute twice. 
+
+example script
+--------------
+
+    1281405881.drake
+    dl cck
+    enable cck
+    cc all
+
+drake commands
+--------------
+
+    drush drake-file
+
+Executing drush drake-file will create an empty migration file for a developer to work with.
+
+    drush drake 1281405881
+
+This command will execute a specific migration script.
+
+    drush drake
+
+This version of the  command will execute all migration scripts that have not previously been executed.
