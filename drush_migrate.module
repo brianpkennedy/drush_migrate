@@ -4,7 +4,7 @@
  * export to a drake script. 
  */
 function drush_migrate_form_alter(&$form, &$form_state, $form_id) {
-  if (in_array('system_settings_form_submit', $form['#submit'])) {
+  if (is_array($form['#submit']) && in_array('system_settings_form_submit', $form['#submit'])) {
     $form['buttons']['drake_export'] = array('#type' => 'submit', '#value' => t('Save and export to drake file') );
     $form['#submit'][] = "_drush_migrate_export_system_settings_form";
   }
@@ -30,7 +30,7 @@ function _drush_migrate_export_system_settings_form($form, &$form_state) {
 
     $script_to_write = implode("\n", $vars);
     module_load_include('inc', 'drush_migrate', 'drake.drush');
-    $filename = drush_migrate_file(false);
+    $filename = drush_drake_file(false);
 
     $fh = fopen($filename, "w");
     fwrite($fh, $script_to_write);
