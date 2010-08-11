@@ -43,6 +43,20 @@ function permissions_drush_command() {
     ),
   );
 
+  $items['roles-dump'] = array(
+    'description' => 'Dump roles',
+    'examples' => array(
+      'roles-dump' => 'Dump permissions for the site_admin role.',
+    ),
+  );
+
+  $items['roles-add'] = array(
+    'description' => 'Add role',
+    'examples' => array(
+      'roles-add leet' => 'Dump permissions for the site_admin role.',
+    ),
+  );
+
   /*
    * TODO: add role import/export
    */
@@ -172,4 +186,31 @@ function _drush_permissions_fetch_role_permissions($role){
   }
   ksort($role_permissions);
   return $role_permissions;
+}
+
+function drush_permissions_roles_dump(){
+  $roles = _drush_roles_fetch_roles();
+  foreach ($roles as $rid => $role) {
+    print sprintf('rid: %s name: "%s"', $rid, $role);
+    print "\n";
+  }
+}
+
+function drush_permissions_roles_add(){
+  $args = func_get_args();
+  $role_name = $args[0];
+  if ($role_name) {
+      db_query("INSERT into {role} (name) VALUES ('%s')", $role_name);
+      print sprintf("added role %s" , $role_name);
+      print "\n";
+  }
+}
+
+
+function _drush_roles_fetch_roles(){
+  $result = db_query('SELECT * FROM {role}');
+  while ($role = db_fetch_array($result)){
+    $roles[$role['rid']] = $role['name'];
+  }
+  return $roles;
 }
