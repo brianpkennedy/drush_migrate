@@ -87,27 +87,25 @@ function _drush_drake_execute_script($path) {
   $script = file($path);
   foreach ($script as $script_line) {
     $script_line = trim($script_line);
-    if (strpos($script_line, "#") != 0){
-      preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
-      if (count($args)) {
-        $args = $args[0];
-      }
-      foreach ($args as $pos => $arg){
-        $args[$pos]=trim($arg);
-      }
+    preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
+    if (count($args)) {
+      $args = $args[0];
+    }
+    foreach ($args as $pos => $arg){
+      $args[$pos]=trim($arg);
+    }
+        
+    // arrays/objects might be serialized in the script, unserialize it for use.
+    foreach ($args as $pos => $arg) {
+      $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
+    }
 
-      // arrays/objects might be serialized in the script, unserialize it for use.
-      foreach ($args as $pos => $arg) {
-        $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
-      }
+    drush_set_arguments($args);
 
-      drush_set_arguments($args);
+    $command = drush_parse_command();
 
-      $command = drush_parse_command();
-
-      if ($command) {
-        drush_dispatch($command);
-      }
+    if ($command) {
+      drush_dispatch($command);
     }
   }
   _drush_drake_mark_script_executed($path);
