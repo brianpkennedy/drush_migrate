@@ -1,5 +1,5 @@
 name = Drush Migrate
-description = Tools for handling drupal migrations using Drush
+description = Tools for drush based migration framework Drake.
 package = Drush
 core = 6.x
 
