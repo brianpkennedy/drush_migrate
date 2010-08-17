@@ -87,7 +87,6 @@ function _drush_drake_execute_script($path) {
   $script = file($path);
   foreach ($script as $script_line) {
     $script_line = trim($script_line);
-    
     preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
     if (count($args)) {
       $args = $args[0];

@@ -11,12 +11,12 @@ function drush_migrate_install() {
 
 }
 
-function drush_drake_uninstall(){
-  drupal_uninstall_schema("drush_drake");
+function drush_migrate_uninstall(){
+  drupal_uninstall_schema("drush_migrate");
   
 }
 
-function drush_drake_schema() {
+function drush_migrate_schema() {
   $schema['drush_drake'] = array(
     'description' => t('Stores an entry for each drake script that has executed'),
     'fields' => array(
