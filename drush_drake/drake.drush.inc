@@ -41,13 +41,23 @@ function drush_drake() {
 
   $executed_scripts = _drush_drake_get_executed_scripts();
   
+  if (!file_exists($filedir)) {
+      mkdir($filedir);
+      drush_log('Drake dir ' . $filedir . ' created.', 'notice');
+  }
+  
   if ($drake_num == 'all') {
     $files = scandir($filedir);
     foreach ($files as $file) {
       if(!is_dir($file) && $file != "." && $file != ".."
       && !in_array(_drush_drake_path_to_drake_version($file), $executed_scripts)) {
-        $path = sprintf("%s/%s", $filedir, $file);
-        _drush_drake_execute_script($path);
+        $path = $filedir . DIRECTORY_SEPARATOR . $file;
+        if (file_exists($path)) {
+            _drush_drake_execute_script($path);
+        } else {
+            drush_log('Drake file "' . $file . '" not found!', 'error');
+            return false;
+        }
       }
     }
   }
@@ -55,24 +65,41 @@ function drush_drake() {
     if (!strpos($drake_num, ".drake")) {
       $drake_num = $drake_num.".drake";
     }
-    $filepath = sprintf("%s/%s",$filedir, $drake_num );
-    _drush_drake_execute_script($filepath);
+    
+    $path = $filedir . DIRECTORY_SEPARATOR . $drake_num;
+    
+    if (file_exists($path)) {
+        _drush_drake_execute_script($path);
+    } else {
+        drush_log('Drake file "' . $drake_num . '" not found!', 'error');
+        return false;
+    }
   }
 }
 
 /*
  * Command callback for drake-file.
  * Generate an empty drake file for migration
+ * @param set this to false when method doesn't gets called from drush
  */
-function drush_drake_file($command_line=true) {
+function drush_drake_file($command_line = true) {
   $timestamp = time();
   $filedir = variable_get("drush_drake_scripts_dir", "scripts/drush_drake");
-  $filename = sprintf("%s/%s.drake",$filedir, $timestamp);
+  $filename = $filedir . DIRECTORY_SEPARATOR . $timestamp . '.drake';
+  
+  if (!file_exists($filedir)) {
+      mkdir($filedir);
+      
+      if ($command_line) {
+        drush_log('Drake dir ' . $filedir . ' created.', 'notice');
+      }
+  }
+  
   $handler = fopen($filename, "w");
   fclose($handler);
 
   if ($command_line) {
-    print sprintf("Created %s for migrating\n", $filename);
+    drush_print(sprintf("Created %s for migrating\n", $filename));
   }
   else {
    return $filename;
@@ -109,7 +136,7 @@ function _drush_drake_execute_script($path) {
     }
   }
   _drush_drake_mark_script_executed($path);
-  print "Completed execution of ".$path . "\n";
+  drush_log("Completed execution of " . $path . "\n", 'success');
 }
 
 /*
