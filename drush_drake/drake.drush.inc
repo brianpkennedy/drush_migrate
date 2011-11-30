@@ -140,9 +140,11 @@ function _drush_drake_path_to_drake_version($filepath) {
  */
 function _drush_drake_get_executed_scripts() {
   $executed_scripts = array();
-  $query = db_query("SELECT drake_id FROM {drush_drake}");
-  while ($result = db_fetch_object($query)){
+  $results = db_query("SELECT drake_id FROM {drush_drake}");
+  
+  foreach ($results as $result) {
     $executed_scripts[] = $result->drake_id;
   }
+  
   return $executed_scripts;
 }
