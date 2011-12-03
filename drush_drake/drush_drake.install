@@ -1,31 +1,21 @@
 <?php
 
-/**
- * Implementation of hook_install().
- */
-function drush_drake_install() {
-  // Create drush_drake dir var
-  variable_set("drush_drake_scripts_dir", "scripts/drush_drake");
-  // TODO: Create drush_drake dir?
-
-}
-
-function drush_drake_uninstall(){
-  variable_del('drush_drake_scripts_dir');
-  variable_del('drush_drake_show_export');
-}
-
 function drush_drake_schema() {
   $schema['drush_drake'] = array(
-    'description' => t('Stores an entry for each drake script that has executed'),
+    'description' => t('Stores an entry for each drake script that has been executed'),
     'fields' => array(
       'drake_id' => array(
-        'description' => t('The primary identifier for a node.'),
+        'description' => t('The primary identifier for a script.'),
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE)
+        'not null' => TRUE),
+      'module' => array(
+        'description' => t('Name of the module'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE ),
       ),
-    'primary key' => array('drake_id')
+    'primary key' => array('drake_id', 'module')
   );
 
   return $schema;

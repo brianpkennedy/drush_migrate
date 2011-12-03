@@ -1,8 +1,3 @@
-drush_migrate
-=============
-
-Drush migrate is a drupal module to enable drush based migrations from developers machines to external environments. The goal is to allow developers to write scripts of drush commands to make configuration environments, as well as allowing easy creation of scripts from the Drupal admininistrative screen. The engine for executing these scripts is called drake.
-
 drush drake
 ===========
 
