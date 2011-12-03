@@ -13,7 +13,7 @@ function drake_drush_command() {
       'module' => 'Module, profile name or "all"',
     ),
     'examples' => array(
-      'drake all' => 'Run drake scripts all within all modules that have not been executed',
+      'drake all' => 'Run all drake scripts within all modules that have not been executed',
       'drake 7100 my_module' => 'Run all drake scripts up to version 7100 within module "my_module"',
       'drake views' => 'Run all drake scripts for the module "views"',
     ),
@@ -26,9 +26,12 @@ function drake_drush_command() {
  * Command callback for drush drake.
  * Load up dir of drush scripts and execute them.
  */
-function drush_drake($drake_id, $module = null) {
+function drush_drake($drake_id = null, $module = null) {
   global $installed_profile;
-  $executed_scripts = _drush_drake_get_executed_scripts();
+  
+  if (empty($drake_id)) {
+    $drake_id = 'all';
+  }
   
   if (empty($module)) {
     $module = $drake_id;
@@ -39,6 +42,8 @@ function drush_drake($drake_id, $module = null) {
   $count_executed_scripts = 0;
   
   if ($module == 'all') {
+    $executed_scripts = _drush_drake_get_executed_scripts();
+    
     foreach ($existing_scripts as $module_name => $scripts) {
       $type = ($module_name == $installed_profile) ? 'profile' : 'module';
       $ret = _drush_drake_execute_run_migrations($module_name, $type, $scripts, $executed_scripts[$module]);
@@ -50,9 +55,10 @@ function drush_drake($drake_id, $module = null) {
       $count_executed_scripts += $ret;
     }
   } else {
+    $executed_scripts = _drush_drake_get_executed_scripts($module);
     $type = ($module == $installed_profile) ? 'profile' : 'module';
     
-    $ret = _drush_drake_execute_run_migrations($module_name, $type, $scripts, $executed_scripts[$module], $drake_id);
+    $ret = _drush_drake_execute_run_migrations($module, $type, $scripts, $executed_scripts[$module], $drake_id, TRUE);
       
     if ($ret == FALSE) {
       return $ret;
@@ -70,24 +76,30 @@ function drush_drake($drake_id, $module = null) {
   return TRUE;
 }
 
-function _drush_drake_execute_run_migrations($module, $system_item_type, $existing_scripts, $executed_scripts, $up_to_version = NULL) {
-  sort($executed_scripts);
-  $latestVersion = end($executed_scripts);
+function _drush_drake_execute_run_migrations($module, $system_item_type, $existing_scripts, $executed_scripts, $up_to_version = NULL, $required = FALSE) {
+  $latestVersion = 0;
   $count = 0;
   
-  if ($up_to_version !== NULL && empty($existing_scripts)) {
-    drush_log('No scripts found for module/profile ' . $module . ' to run.', 'error');
+  if (!empty($executed_scripts)) {
+    sort($executed_scripts);
+    $latestVersion = end($executed_scripts);
+  }
+  
+  if (($required || $up_to_version !== NULL) && empty($existing_scripts)) {
+    drush_log('No scripts found for module/profile ' . $module . '.', 'error');
     return FALSE;
   }
   
-  foreach ($existing_scripts as $script) {
-    if ($script > $latestVersion && ($up_to_version == NULL || $script <= $up_to_version)) {
-      if (_drush_drake_execute_script($script, $module, $system_item_type) == FALSE) {
-        drush_log('Executing the script ' . $script . ' of module/profile ' . $module . ' failed!', 'error');
-        return FALSE;
-      }
+  if (!empty($existing_scripts)) {
+    foreach ($existing_scripts as $script) {
+      if ($script > $latestVersion && ($up_to_version == NULL || $script <= $up_to_version)) {
+        if (_drush_drake_execute_script($script, $module, $system_item_type) == FALSE) {
+          drush_log('Executing the script ' . $script . ' of module/profile ' . $module . ' failed!', 'error');
+          return FALSE;
+        }
       
-      $count++;
+        $count++;
+      }
     }
   }
   
@@ -197,10 +209,10 @@ function _drush_drake_get_existing_scripts_for_system_item($system_item_name, $s
 /*
  * Gets all executed scripts grouped by module/profile name.
  */
-function _drush_drake_get_executed_scripts($system_item_name) {
+function _drush_drake_get_executed_scripts($system_item_name = null) {
   $query = db_select('drush_drake', 'd')->fields('d');
   
-  if ($module != 'all') {
+  if ($system_item_name != 'all') {
     $query->condition('module', $system_item_name, '=');
   }
   
