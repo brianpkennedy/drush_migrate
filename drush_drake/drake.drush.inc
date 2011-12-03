@@ -137,13 +137,10 @@ function _drush_drake_execute_script($version, $module, $system_item_type = 'mod
         $args[$pos] = trim($arg);
       }        
       
-      drush_set_context('argv', $args);
-      drush_parse_args();
-      $parsed_args = drush_get_arguments();
-      array_unshift($parsed_args, $args[0]);
-      drush_set_arguments($parsed_args);
+      drush_set_arguments($args);
+      drush_set_context('DRUSH_AFFIRMATIVE', TRUE);
       $command = drush_parse_command();
-      
+
       if ($command) {
         if (drush_dispatch($command) === FALSE) {
           return FALSE;
