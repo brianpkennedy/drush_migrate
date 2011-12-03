@@ -122,36 +122,42 @@ function _drush_drake_execute_script($version, $module, $system_item_type = 'mod
   $path = _drush_drake_get_dir($system_item_type, $module);
   $path .= DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR . $version . '.drake';
   $script = file($path);
+  $line = 1;
 
   if (!empty($script)) {
     foreach ($script as $script_line) {
       $script_line = trim($script_line);
       preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
+      
       if (count($args)) {
         $args = $args[0];
       }
       
       foreach ($args as $pos => $arg){
         $args[$pos] = trim($arg);
-      }
-        
-      // arrays/objects might be serialized in the script, unserialize it for use.
-      foreach ($args as $pos => $arg) {
-        $args[$pos] = @unserialize($arg) === FALSE ? $arg : unserialize($arg);
-      }
-
-      drush_set_arguments($args);
+      }        
+      
+      drush_set_context('argv', $args);
+      drush_parse_args();
+      $parsed_args = drush_get_arguments();
+      array_unshift($parsed_args, $args[0]);
+      drush_set_arguments($parsed_args);
       $command = drush_parse_command();
-
+      
       if ($command) {
         if (drush_dispatch($command) === FALSE) {
           return FALSE;
         }
+      } else {
+        drush_log('Drush command in line ' . $line . ' was not parsed successfully!', 'error');
+        return FALSE;
       }
+      
+      $line++;
     }
   
     _drush_drake_mark_script_executed($module, $version);
-    drush_log("Completed execution of migration " . $module . "\n", 'success');
+    drush_log("Completed execution of migration " . $version . ' of module/profile ' . $module . "\n", 'success');
   }
   
   return TRUE;
