@@ -48,7 +48,7 @@ function drush_drake($drake_id = null, $module = null) {
       $type = ($module_name == $installed_profile) ? 'profile' : 'module';
       $ret = _drush_drake_execute_run_migrations($module_name, $type, $scripts, isset($executed_scripts[$module_name]) ? $executed_scripts[$module_name] : null);
       
-      if ($ret == FALSE) {
+      if ($ret === FALSE) {
         return $ret;
       }
       
@@ -58,9 +58,9 @@ function drush_drake($drake_id = null, $module = null) {
     $executed_scripts = _drush_drake_get_executed_scripts($module);
     $type = ($module == $installed_profile) ? 'profile' : 'module';
     
-    $ret = _drush_drake_execute_run_migrations($module, $type, $scripts, isset($executed_scripts[$module]) ? $executed_scripts[$module] : null, $drake_id, TRUE);
+    $ret = _drush_drake_execute_run_migrations($module, $type, isset($existing_scripts[$module]) ? $existing_scripts[$module] : null, isset($executed_scripts[$module]) ? $executed_scripts[$module] : null, $drake_id, TRUE);
       
-    if ($ret == FALSE) {
+    if ($ret === FALSE) {
       return $ret;
     }
 
@@ -108,7 +108,7 @@ function _drush_drake_execute_run_migrations($module, $system_item_type, $existi
 
 function _drush_drake_get_dir($system_item_type, $module) {
   if ($system_item_type == 'profile') {
-    return DIRECTORY_SEPARATOR . 'profiles' . DIRECTORY_SEPARATOR . $module;
+    return 'profiles' . DIRECTORY_SEPARATOR . $module;
   } else {
     return drupal_get_path($system_item_type, $module);
   }
@@ -130,26 +130,28 @@ function _drush_drake_execute_script($version, $module, $system_item_type = 'mod
       if (count($args)) {
         $args = $args[0];
       }
+      
       foreach ($args as $pos => $arg){
-        $args[$pos]=trim($arg);
+        $args[$pos] = trim($arg);
       }
         
       // arrays/objects might be serialized in the script, unserialize it for use.
       foreach ($args as $pos => $arg) {
-        $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
+        $args[$pos] = @unserialize($arg) === FALSE ? $arg : unserialize($arg);
       }
 
+      drush_set_arguments($args);
       $command = drush_parse_command();
 
       if ($command) {
-        if (drush_dispatch($command, $args) == FALSE) {
+        if (drush_dispatch($command) === FALSE) {
           return FALSE;
         }
       }
     }
   
     _drush_drake_mark_script_executed($module, $version);
-    drush_log("Completed execution of migration " . $path . "\n", 'success');
+    drush_log("Completed execution of migration " . $module . "\n", 'success');
   }
   
   return TRUE;
@@ -166,7 +168,7 @@ function _drush_drake_get_existing_scripts($module) {
     $installed_profile = variable_get('install_profile');
     $enabled_modules = module_list();
     $existing_scripts = array();
-    
+
     if ($module == 'all') {
       foreach ($enabled_modules as $module_name) {
         $scripts = _drush_drake_get_existing_scripts_for_system_item($module_name);
@@ -181,11 +183,11 @@ function _drush_drake_get_existing_scripts($module) {
       if (!empty($scripts)) {
         $existing_scripts[$installed_profile] = $scripts;
       }
-    } else if (isset($enabled_modules[$module])) {
-      $existing_scripts[$module] = _drush_drake_get_existing_scripts_for_system_item($module);;
     } else if ($installed_profile == $module) {
       $existing_scripts[$module] = _drush_drake_get_existing_scripts_for_system_item($module, 'profile');;
-    }
+    } else if (isset($enabled_modules[$module])) {
+      $existing_scripts[$module] = _drush_drake_get_existing_scripts_for_system_item($module);;
+    } 
     
     return $existing_scripts;
 }
@@ -199,9 +201,10 @@ function _drush_drake_get_existing_scripts($module) {
 function _drush_drake_get_existing_scripts_for_system_item($system_item_name, $system_item_type = 'module') {
   $path = _drush_drake_get_dir($system_item_type, $system_item_name);
   $existing_scripts = array();
-  $dir = $path . DIRECTORY_SEPARATOR . 'migrations';
-  
+  $dir = $path . DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR;
+
   if (file_exists($dir) && is_dir($dir)) {
+    drush_log('Scan migrations folder within module/profile ' . $system_item_name . '..', 'notice');
     $files = scandir($dir);
     
     foreach ($files as $file) {
