@@ -27,8 +27,8 @@ function drake_drush_command() {
  * Load up dir of drush scripts and execute them.
  */
 function drush_drake($drake_id = null, $module = null) {
-  global $installed_profile;
-  
+  $installed_profile = variable_get('install_profile');
+
   if (empty($drake_id)) {
     $drake_id = 'all';
   }
@@ -46,7 +46,7 @@ function drush_drake($drake_id = null, $module = null) {
     
     foreach ($existing_scripts as $module_name => $scripts) {
       $type = ($module_name == $installed_profile) ? 'profile' : 'module';
-      $ret = _drush_drake_execute_run_migrations($module_name, $type, $scripts, $executed_scripts[$module]);
+      $ret = _drush_drake_execute_run_migrations($module_name, $type, $scripts, isset($executed_scripts[$module_name]) ? $executed_scripts[$module_name] : null);
       
       if ($ret == FALSE) {
         return $ret;
@@ -58,7 +58,7 @@ function drush_drake($drake_id = null, $module = null) {
     $executed_scripts = _drush_drake_get_executed_scripts($module);
     $type = ($module == $installed_profile) ? 'profile' : 'module';
     
-    $ret = _drush_drake_execute_run_migrations($module, $type, $scripts, $executed_scripts[$module], $drake_id, TRUE);
+    $ret = _drush_drake_execute_run_migrations($module, $type, $scripts, isset($executed_scripts[$module]) ? $executed_scripts[$module] : null, $drake_id, TRUE);
       
     if ($ret == FALSE) {
       return $ret;
@@ -70,7 +70,7 @@ function drush_drake($drake_id = null, $module = null) {
   if ($count_executed_scripts == 0) {
     drush_log('No migrations had to be run, everything up to date.', 'success');
   } else {
-    drush_log('A total of ' . $count_executed_scripts . ' mirations were executed.', 'success');
+    drush_log('A total count of ' . $count_executed_scripts . ' miration(s) were executed.', 'success');
   }
   
   return TRUE;
@@ -106,41 +106,51 @@ function _drush_drake_execute_run_migrations($module, $system_item_type, $existi
   return $count;
 }
 
+function _drush_drake_get_dir($system_item_type, $module) {
+  if ($system_item_type == 'profile') {
+    return DIRECTORY_SEPARATOR . 'profiles' . DIRECTORY_SEPARATOR . $module;
+  } else {
+    return drupal_get_path($system_item_type, $module);
+  }
+}
 
 /*
  * Helper function to execute a script.
  * 
  */
 function _drush_drake_execute_script($version, $module, $system_item_type = 'module') {
-  $path = drupal_get_path($system_item_type, $module) . DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR . $version . '.drake';
+  $path = _drush_drake_get_dir($system_item_type, $module);
+  $path .= DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR . $version . '.drake';
   $script = file($path);
 
-  foreach ($script as $script_line) {
-    $script_line = trim($script_line);
-    preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
-    if (count($args)) {
-      $args = $args[0];
-    }
-    foreach ($args as $pos => $arg){
-      $args[$pos]=trim($arg);
-    }
+  if (!empty($script)) {
+    foreach ($script as $script_line) {
+      $script_line = trim($script_line);
+      preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
+      if (count($args)) {
+        $args = $args[0];
+      }
+      foreach ($args as $pos => $arg){
+        $args[$pos]=trim($arg);
+      }
         
-    // arrays/objects might be serialized in the script, unserialize it for use.
-    foreach ($args as $pos => $arg) {
-      $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
-    }
+      // arrays/objects might be serialized in the script, unserialize it for use.
+      foreach ($args as $pos => $arg) {
+        $args[$pos] = unserialize($arg) ? unserialize($arg) : $arg;
+      }
 
-    $command = drush_parse_command();
+      $command = drush_parse_command();
 
-    if ($command) {
-      if (drush_dispatch($command, $args) == FALSE) {
-        return FALSE;
+      if ($command) {
+        if (drush_dispatch($command, $args) == FALSE) {
+          return FALSE;
+        }
       }
     }
+  
+    _drush_drake_mark_script_executed($module, $version);
+    drush_log("Completed execution of migration " . $path . "\n", 'success');
   }
-
-  drush_drake_mark_script_executed($version, $module);
-  drush_log("Completed execution of migration " . $path . "\n", 'success');
   
   return TRUE;
 }
@@ -153,7 +163,7 @@ function _drush_drake_mark_script_executed($module, $version) {
 }
 
 function _drush_drake_get_existing_scripts($module) {
-    global $installed_profile;
+    $installed_profile = variable_get('install_profile');
     $enabled_modules = module_list();
     $existing_scripts = array();
     
@@ -187,7 +197,7 @@ function _drush_drake_get_existing_scripts($module) {
  * @return array
  */
 function _drush_drake_get_existing_scripts_for_system_item($system_item_name, $system_item_type = 'module') {
-  $path = drupal_get_path($system_item_type, $system_item_name);
+  $path = _drush_drake_get_dir($system_item_type, $system_item_name);
   $existing_scripts = array();
   $dir = $path . DIRECTORY_SEPARATOR . 'migrations';
   
@@ -209,13 +219,13 @@ function _drush_drake_get_existing_scripts_for_system_item($system_item_name, $s
 /*
  * Gets all executed scripts grouped by module/profile name.
  */
-function _drush_drake_get_executed_scripts($system_item_name = null) {
+function _drush_drake_get_executed_scripts($system_item_name = 'all') {
   $query = db_select('drush_drake', 'd')->fields('d');
   
   if ($system_item_name != 'all') {
     $query->condition('module', $system_item_name, '=');
   }
-  
+
   $executed_scripts = $query->execute()->fetchAll();
   $grouped_results = array();
   
