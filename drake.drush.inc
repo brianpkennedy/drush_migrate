@@ -6,17 +6,24 @@
  * Implementation of hook_drush_command().
  */
 function drake_drush_command() {
-  $items['drake'] = array(
+  $items['drake-migrate'] = array(
     'description' => 'Execute migration scripts',
     'arguments' => array(
       'version' => 'A specific drake version to execute, if one is not given all scripts will be executed.',
       'module' => 'Module, profile name or "all"',
     ),
     'examples' => array(
-      'drake all' => 'Run all drake scripts within all modules that have not been executed',
-      'drake 7100 my_module' => 'Run all drake scripts up to version 7100 within module "my_module"',
-      'drake views' => 'Run all drake scripts for the module "views"',
+      'drake-migrate all' => 'Run all drake scripts within all modules that have not been executed',
+      'drake-migrate 7100 my_module' => 'Run all drake scripts up to version 7100 within module "my_module"',
+      'drake-migrate views' => 'Run all drake scripts for the module "views"',
     ),
+  );
+  
+  $items['drake'] = array(
+    'description' => 'Execute script',
+    'arguments' => array(
+        'path' => 'Path to script file'
+     ),
   );
 
   return $items;
@@ -24,9 +31,20 @@ function drake_drush_command() {
 
 /**
  * Command callback for drush drake.
- * Load up dir of drush scripts and execute them.
  */
-function drush_drake($drake_id = null, $module = null) {
+function drush_drake($drake_file) {
+  if (!file_exists($drake_file)) {
+    drush_log('The file was not found!', 'error');
+    return FALSE;
+  }
+  _drush_drake_execute_migrate_script($drake_file);
+}
+
+
+/**
+ * Command callback for drush drake-migrate.
+ */
+function drush_drake_migrate($drake_id = null, $module = null) {
   $installed_profile = variable_get('install_profile');
 
   if (empty($drake_id)) {
@@ -93,7 +111,7 @@ function _drush_drake_execute_run_migrations($module, $system_item_type, $existi
   if (!empty($existing_scripts)) {
     foreach ($existing_scripts as $script) {
       if ($script > $latestVersion && ($up_to_version == NULL || $script <= $up_to_version)) {
-        if (_drush_drake_execute_script($script, $module, $system_item_type) == FALSE) {
+        if (_drush_drake_execute_migrate_script($script, $module, $system_item_type) == FALSE) {
           drush_log('Executing the script ' . $script . ' of module/profile ' . $module . ' failed!', 'error');
           return FALSE;
         }
@@ -114,13 +132,23 @@ function _drush_drake_get_dir($system_item_type, $module) {
   }
 }
 
-/*
- * Helper function to execute a script.
- * 
- */
-function _drush_drake_execute_script($version, $module, $system_item_type = 'module') {
+function _drush_drake_execute_migrate_script($version, $module, $system_item_type = 'module') {
   $path = _drush_drake_get_dir($system_item_type, $module);
   $path .= DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR . $version . '.drake';
+  
+  if (_drush_drake_execute_script($path)) {
+     _drush_drake_mark_script_executed($module, $version);
+
+    return TRUE;
+  }
+  
+  return FALSE;
+}
+
+/*
+ * Helper function to execute a script.
+ */
+function _drush_drake_execute_script($path) {
   $script = file($path);
   $line = 1;
 
@@ -153,8 +181,7 @@ function _drush_drake_execute_script($version, $module, $system_item_type = 'mod
       $line++;
     }
   
-    _drush_drake_mark_script_executed($module, $version);
-    drush_log("Completed execution of migration " . $version . ' of module/profile ' . $module . "\n", 'success');
+    drush_log("Completed execution of script " . $path . '".', 'success');
   }
   
   return TRUE;

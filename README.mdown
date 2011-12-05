@@ -24,8 +24,8 @@ drake command
 The drake command expects an optional version number and a module/profile name or "all". Examples:
 
     ; runs all migrations in all modules
-    drush drake all
+    drush drake-migrate all
     ; runs all migrations up to the version 7100 of the module "my_module"
-    drush drake 7100 my_module
+    drush drake-migrate 7100 my_module
     ; runs all migrations of the install profile "my_install_profile"
-    drush drake my_install_profile
+    drush drake-migrate my_install_profile
