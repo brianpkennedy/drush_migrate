@@ -32,12 +32,19 @@ function drake_drush_command() {
 /**
  * Command callback for drush drake.
  */
-function drush_drake($drake_file) {
+function drush_drake($drake_file = null) {
+  if ($drake_file == null) {
+    drush_log('Please specify a script path!', 'error');
+    return FALSE;
+  }
+  
   if (!file_exists($drake_file)) {
     drush_log('The file was not found!', 'error');
     return FALSE;
   }
-  _drush_drake_execute_migrate_script($drake_file);
+  _drush_drake_execute_script($drake_file);
+  
+  return TRUE;
 }
 
 
@@ -155,27 +162,30 @@ function _drush_drake_execute_script($path) {
   if (!empty($script)) {
     foreach ($script as $script_line) {
       $script_line = trim($script_line);
-      preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
       
-      if (count($args)) {
-        $args = $args[0];
-      }
-      
-      foreach ($args as $pos => $arg){
-        $args[$pos] = trim($arg);
-      }        
-      
-      drush_set_arguments($args);
-      drush_set_context('DRUSH_AFFIRMATIVE', TRUE);
-      $command = drush_parse_command();
+      if (!empty($script_line)) {
+        preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
 
-      if ($command) {
-        if (drush_dispatch($command) === FALSE) {
+        if (count($args)) {
+          $args = $args[0];
+        }
+
+        foreach ($args as $pos => $arg){
+          $args[$pos] = trim($arg);
+        }        
+
+        drush_set_arguments($args);
+        drush_set_context('DRUSH_AFFIRMATIVE', TRUE);
+        $command = drush_parse_command();
+
+        if ($command) {
+          if (drush_dispatch($command) === FALSE) {
+            return FALSE;
+          }
+        } else {
+          drush_log('Drush command in line ' . $line . ' was not parsed successfully!', 'error');
           return FALSE;
         }
-      } else {
-        drush_log('Drush command in line ' . $line . ' was not parsed successfully!', 'error');
-        return FALSE;
       }
       
       $line++;
