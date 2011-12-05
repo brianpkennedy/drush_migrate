@@ -8,10 +8,11 @@ A file name for a drake migration must consist of a version number and the suffi
 Drake migration files have to reside in a "migrations" folder within any module or an installation profile. The engine finds them all and allows you to run all scripts or only those
 of a special module/profile up to a specific version. Note that only the directories of enabled modules and the active installation profile are searched for migrations.
 
+Note that drake actually passes the "-y" option to all drush commands at the moment. This is because the parsing of those options does not work at the moment.
+
 example drake script "my_module/migrations/7100.drake"
 --------------
 
-    my_module/migrations/7100.drake
     ; this migration for the 7-1.x version of "my_module" downloads all required dependencies and clears the cache
     dl views
     enable views
