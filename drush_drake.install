@@ -1,0 +1,22 @@
+<?php
+
+function drush_drake_schema() {
+  $schema['drush_drake'] = array(
+    'description' => t('Stores an entry for each drake script that has been executed'),
+    'fields' => array(
+      'drake_id' => array(
+        'description' => t('The primary identifier for a script.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'module' => array(
+        'description' => t('Name of the module'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE ),
+      ),
+    'primary key' => array('drake_id', 'module')
+  );
+
+  return $schema;
+}

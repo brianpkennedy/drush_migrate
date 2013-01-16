@@ -1,32 +1,40 @@
-drush_migrate
-=============
-
-Drush migrate is a drupal module to enable drush based migrations from developers machines to external environments. The goal is to allow developers to write scripts of drush commands to make configuration environments, as well as allowing easy creation of scripts from the Drupal admininistrative screen. The engine for executing these scripts is called drake.
-
 drush drake
 ===========
 
-Drush Drake is the engine for executing migration scripts. Each drake script is a collection of drush commands, which are executed via the "drush drake" command. After a drake script is executed, it is logged in the database as executed so that it will not execute twice. 
+Drush Drake is the engine for executing single scripts or a set of migrations. A drake script is a simple text file containing of drush commands on every line. 
 
-example script
+A file name for a drake migration must consist of a version number and the suffix ".drake". You must use higher numbers for newer scripts! It is recommend to use the number scheme proposed by the update_N hook (http://api.drupal.org/api/drupal/modules--system--system.api.php/function/hook_update_N/7). 
+
+Drake migration files have to reside in a "migrations" folder within any module or an installation profile. The engine finds them all and allows you to run all scripts or only those
+of a special module/profile up to a specific version. Note that only the directories of enabled modules and the active installation profile are searched for migrations.
+
+Note that drake actually passes the "-y" option to all drush commands at the moment. This is because the parsing of those options does not work at the moment.
+
+example drake script "my_module/migrations/7100.drake"
 --------------
 
-    1281405881.drake
-    dl cck
-    enable cck
+    ; this migration for the 7-1.x version of "my_module" downloads all required dependencies and clears the cache
+    dl views
+    enable views
     cc all
+
+Any valid drush commands are here allowed.
 
 drake commands
 --------------
 
-    drush drake-file
+The drake-migrate command expects an optional version number and a module/profile name or "all". Examples:
 
-Executing drush drake-file will create an empty migration file for a developer to work with.
+    ; runs all migrations in all modules
+    drush drake-migrate all
+    ; runs all migrations up to the version 7100 of the module "my_module"
+    drush drake-migrate 7100 my_module
+    ; runs all migrations of the install profile "my_install_profile"
+    drush drake-migrate my_install_profile
 
-    drush drake 1281405881
+Drush Drake stores all successfully executed migrations within the database, preventing them from running more than one time.
 
-This command will execute a specific migration script.
+You can also execute a single script file via the drake command. This is useful for setting up an environment configuration or downloading development modules:
 
-    drush drake
-
-This version of the  command will execute all migration scripts that have not previously been executed.
+    ; download and enable devel and other modules
+    drush drake profiles/my_profile/devel-tools.drake

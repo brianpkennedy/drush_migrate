@@ -1,5 +1,5 @@
-name = Drush Migrate
+name = Drush Drake
 description = Tools for drush based migration framework Drake.
 package = Drush
-core = 6.x
+core = 7.x
 
