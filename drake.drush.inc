@@ -177,19 +177,46 @@ function _drush_drake_execute_script($path) {
   if (!empty($script)) {
     foreach ($script as $script_line) {
       $script_line = trim($script_line);
+      $args = array();
+      $options = array();
 
       if (!empty($script_line)) {
-        preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $args);
+        preg_match_all("/\".*?\"|.+?[\s]|.+?$/", $script_line, $command_params);
 
-        if (count($args)) {
-          $args = $args[0];
+        if (count($command_params)) {
+          $command_params = $command_params[0];
         }
 
-        foreach ($args as $pos => $arg) {
-          $args[$pos] = trim($arg);
+        $needle = '--';
+        foreach ($command_params as $pos => $arg) {
+          $value = trim($arg);
+          // Split arguments and options.
+          if (!strncmp($value, $needle, strlen($needle))) {
+            // Split option name and option value.
+            // @TODO: Use regexp to prevent split in case when value contains =
+            $option = explode('=', $value);
+            // Remove -- from option's name begining.
+            $name = ltrim($option[0], '-');
+            // Check if this option have value.
+            if (isset($option[1])) {
+              // Remove ' and "  from option value.
+              $value = trim($option[1], "'\"");
+            }
+            else {
+              // If function do not have value use name instead of it.
+              $value = $name;
+            }
+            $options[$name] = $value;
+          }
+          else {
+            $args[$pos] = $value;
+          }
         }
 
         drush_set_arguments($args);
+        foreach ($options as $name => $value) {
+          drush_set_option($name, $value);
+        }
         drush_set_context('DRUSH_AFFIRMATIVE', TRUE);
         $command = drush_parse_command();
 
